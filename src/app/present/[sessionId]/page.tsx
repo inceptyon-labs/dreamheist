@@ -67,7 +67,6 @@ export default function PresentPage() {
 
   const { session, questions, votes, agents, translation } = snapshot;
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const joinUrl = `${origin}/join/${sessionId}`;
 
   // Created state - show QR
   if (session.state === 'created') {
@@ -75,10 +74,8 @@ export default function PresentPage() {
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-12">
         <h1 className="text-6xl font-bold mb-4 tracking-tight">Dream Heist</h1>
         <p className="text-2xl text-gray-400 mb-12">Scan to enter the dream</p>
-        <div className="bg-white p-6 rounded-2xl mb-8">
-          <QRCode url={joinUrl} />
-        </div>
-        <p className="text-lg text-gray-500 font-mono">{joinUrl}</p>
+        <QRCode size={400} />
+        <p className="text-lg text-gray-500 font-mono mt-8">{origin}</p>
         <div className="mt-8 text-gray-600">{session.audienceCount} dreamer{session.audienceCount !== 1 ? 's' : ''} connected</div>
       </div>
     );
@@ -101,9 +98,7 @@ export default function PresentPage() {
             <h1 className="text-4xl font-bold mb-2">Dream Heist</h1>
             <p className="text-xl text-gray-500">5 layers. Vote on your phone.</p>
           </div>
-          <div className="bg-white p-3 rounded-xl">
-            <QRCode url={joinUrl} size={150} />
-          </div>
+          <QRCode size={150} />
         </div>
 
         {/* Question progress */}
@@ -342,14 +337,14 @@ export default function PresentPage() {
   );
 }
 
-function QRCode({ url, size = 300 }: { url: string; size?: number }) {
+function QRCode({ size = 300 }: { size?: number }) {
   return (
     <img
-      src={`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=000000`}
-      alt="QR Code"
+      src="/qr-code.png"
+      alt="Scan to enter the dream"
       width={size}
       height={size}
-      className="block"
+      className="block rounded-xl"
     />
   );
 }

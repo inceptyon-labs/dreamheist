@@ -141,6 +141,21 @@ export function getSession(id: string): Session | null {
   };
 }
 
+export function getLatestSession(): Session | null {
+  const d = getDb();
+  const row = d.prepare('SELECT * FROM sessions ORDER BY createdAt DESC LIMIT 1').get() as Record<string, unknown> | undefined;
+  if (!row) return null;
+  return {
+    id: row.id as string,
+    createdAt: row.createdAt as string,
+    title: row.title as string,
+    state: row.state as SessionState,
+    currentQuestionIndex: row.currentQuestionIndex as number,
+    votingLocked: (row.votingLocked as number) === 1,
+    audienceCount: row.audienceCount as number,
+  };
+}
+
 export function updateSessionState(id: string, state: SessionState) {
   getDb().prepare('UPDATE sessions SET state = ? WHERE id = ?').run(state, id);
 }

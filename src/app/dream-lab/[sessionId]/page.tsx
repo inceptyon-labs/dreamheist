@@ -228,6 +228,17 @@ export default function DreamLabPage() {
   const prevStatusRef = useRef<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const buildStartRef = useRef<number | null>(null);
+  const prevAgentStatesRef = useRef<Record<string, AgentActivity>>({});
+  const prevEventCountRef = useRef<number>(0);
+
+  const playSfx = useCallback((file: string, volume = 0.4) => {
+    if (muted) return;
+    try {
+      const a = new Audio(`/soundfx/${file}`);
+      a.volume = volume;
+      a.play().catch(() => {});
+    } catch { /* ignore */ }
+  }, [muted]);
 
   const handleRestartAgent = useCallback(async (role: string) => {
     setRestarting(role);
@@ -342,13 +353,15 @@ export default function DreamLabPage() {
   // "The Kick" reveal — trigger when build transitions to completed
   useEffect(() => {
     if (overallStatus === 'completed' && prevStatusRef.current === 'running' && !kickDismissed) {
+      playSfx('the-kick.mp3', 0.6);
+      setTimeout(() => playSfx('build-complete.mp3', 0.4), 2000);
       setShowKickReveal(true);
       // Auto-dismiss after 8 seconds
       const t = setTimeout(() => setShowKickReveal(false), 8000);
       return () => clearTimeout(t);
     }
     prevStatusRef.current = overallStatus;
-  }, [overallStatus, kickDismissed]);
+  }, [overallStatus, kickDismissed, playSfx]);
 
   // Music — play Non, Je Ne Regrette Rien during build
   useEffect(() => {
@@ -424,6 +437,38 @@ export default function DreamLabPage() {
     }
     return activities;
   }, [events, agentStatuses]);
+
+  // Sound effects — react to agent state transitions and skill/mcp events
+  useEffect(() => {
+    const prev = prevAgentStatesRef.current;
+    for (const role of Object.keys(AGENTS)) {
+      const cur = agentActivities[role]?.activity;
+      const was = prev[role];
+      if (!cur || cur === was) continue;
+      // Agent just started (idle/pending → active state)
+      if (was === 'idle' && cur !== 'idle' && cur !== 'complete' && cur !== 'failed') {
+        playSfx('agent-activate.mp3', 0.3);
+      }
+      // Agent completed
+      if (cur === 'complete' && was !== 'complete') {
+        playSfx('agent-complete.mp3', 0.35);
+      }
+      prev[role] = cur;
+    }
+
+    // Check new events for skill/mcp invocations
+    const newEvents = events.slice(prevEventCountRef.current);
+    prevEventCountRef.current = events.length;
+    for (const ev of newEvents) {
+      if (ev.type === 'tool_use') {
+        const tn = (ev.data.toolName || '').toLowerCase();
+        if (tn === 'skill' || tn.startsWith('mcp__')) {
+          playSfx('skill-invoked.mp3', 0.3);
+          break; // one per poll cycle is enough
+        }
+      }
+    }
+  }, [agentActivities, events, playSfx]);
 
   // Track inter-agent communication: when one agent reads a file another wrote
   const agentConnections = useMemo(() => {

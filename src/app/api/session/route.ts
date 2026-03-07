@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   createSession,
   getSession,
+  getLatestSession,
   updateSessionState,
   getQuestionResults,
   setQuestionWinner,
@@ -19,6 +20,14 @@ import { runPipeline } from '@/lib/agents/pipeline';
 
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get('id');
+  const latest = req.nextUrl.searchParams.get('latest');
+
+  if (latest) {
+    const session = getLatestSession();
+    if (!session) return NextResponse.json({ session: null });
+    return NextResponse.json({ session });
+  }
+
   if (sessionId) {
     try {
       const snapshot = getSessionSnapshot(sessionId);
